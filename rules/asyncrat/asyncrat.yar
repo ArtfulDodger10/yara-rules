@@ -1,6 +1,6 @@
 /*
     AsyncRAT detections
-    Nader Ayman (Artful Dodger)
+    Artful Dodger
 
     AsyncRAT_Payload_Generic         family rule for the .NET client
     AsyncRAT_Campaign_xTeam_Memory   config of the xTeam build, decrypted in memory only
@@ -12,7 +12,7 @@ rule AsyncRAT_Payload_Generic
 {
     meta:
         description = "AsyncRAT client: PBKDF2/AES/HMAC config crypto, SslStream C2, and its anti-analysis and persistence strings"
-        author      = "Nader Ayman (Artful Dodger)"
+        author      = "Artful Dodger"
         date        = "2026-09-28"
         family      = "AsyncRAT"
         hash        = "3dbaf616dcaacfcf66909b7a3404d1536f9e0d230b3b59934f1ccc6fe3e20554"
@@ -52,7 +52,7 @@ rule AsyncRAT_Campaign_xTeam_Memory
 {
     meta:
         description = "Config values of the xTeam AsyncRAT 0.5.8 build. The config is AES-encrypted on disk, so scan memory or a decrypted dump"
-        author      = "Nader Ayman (Artful Dodger)"
+        author      = "Artful Dodger"
         date        = "2026-09-28"
         family      = "AsyncRAT"
         scope       = "memory"

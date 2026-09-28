@@ -260,7 +260,7 @@ import "math"
 rule Credential_Stealer_Generic {
     meta:
         description = "Generic credential stealer: browser paths plus crypto APIs"
-        author      = "Nader"
+        author      = "Artful Dodger"
         date        = "2025-06-13"
         confidence  = "Medium"
 

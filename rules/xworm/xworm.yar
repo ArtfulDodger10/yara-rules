@@ -1,6 +1,6 @@
 /*
     XWorm detections
-    Nader Ayman (Artful Dodger)
+    Artful Dodger
     https://artfuldodger10.github.io/posts/Xworm-Analysis/
 
     XWorm_Payload_Generic             family rule, any build
@@ -14,7 +14,7 @@ rule XWorm_Payload_Generic
 {
     meta:
         description = "XWorm .NET payload, matched on the C2 command names in the #US heap"
-        author      = "Nader Ayman (Artful Dodger)"
+        author      = "Artful Dodger"
         date        = "2026-09-28"
         family      = "XWorm"
         reference   = "https://artfuldodger10.github.io/posts/Xworm-Analysis/"
@@ -47,7 +47,7 @@ rule XWorm_Campaign_202609_Payload
 {
     meta:
         description = "XWorm V7.1 build delivered by RAR > JS > PowerShell > MSBuild, September 2026"
-        author      = "Nader Ayman (Artful Dodger)"
+        author      = "Artful Dodger"
         date        = "2026-09-28"
         family      = "XWorm"
         reference   = "https://artfuldodger10.github.io/posts/Xworm-Analysis/"
@@ -69,7 +69,7 @@ rule XWorm_Campaign_202609_PS_Loader
 {
     meta:
         description = "PowerShell loader that decodes and decrypts XWorm and loads it into MSBuild"
-        author      = "Nader Ayman (Artful Dodger)"
+        author      = "Artful Dodger"
         date        = "2026-09-28"
         family      = "XWorm loader"
         reference   = "https://artfuldodger10.github.io/posts/Xworm-Analysis/"

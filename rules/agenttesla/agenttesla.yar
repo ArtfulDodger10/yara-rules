@@ -1,6 +1,6 @@
 /*
     AgentTesla detections
-    Nader Ayman (Artful Dodger)
+    Artful Dodger
     https://artfuldodger10.github.io/posts/AgentTesla-RAT-Full-Malware-Analysis-Report/
 
     AgentTesla_Loader_FF_Resource      stage 1 loader on disk
@@ -15,7 +15,7 @@ rule AgentTesla_Loader_FF_Resource
 {
     meta:
         description = "AgentTesla loader posing as an image filter app. XOR-decrypts managed resource FF and runs it with Assembly.Load"
-        author      = "Nader Ayman (Artful Dodger)"
+        author      = "Artful Dodger"
         date        = "2026-09-28"
         family      = "AgentTesla"
         reference   = "https://artfuldodger10.github.io/posts/AgentTesla-RAT-Full-Malware-Analysis-Report/"
@@ -47,7 +47,7 @@ rule AgentTesla_Campaign_SMTP_Memory
 {
     meta:
         description = "SMTP exfiltration settings of the albushrametalic campaign. Present only after decryption, so scan unpacked payloads or memory"
-        author      = "Nader Ayman (Artful Dodger)"
+        author      = "Artful Dodger"
         date        = "2026-09-28"
         family      = "AgentTesla"
         reference   = "https://artfuldodger10.github.io/posts/AgentTesla-RAT-Full-Malware-Analysis-Report/"

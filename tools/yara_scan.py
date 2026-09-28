@@ -9,7 +9,7 @@ Scan files with every rule in this repo and report hits per file and per rule.
 The per-rule counts at the end are what goes into the testing tables:
 run once on a sample set (true positives) and once on clean files (false positives).
 
-Nader Ayman (Artful Dodger) - MIT License
+Artful Dodger - MIT License
 """
 from __future__ import annotations
 

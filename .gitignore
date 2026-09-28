@@ -1,14 +1,22 @@
+# samples never go in the repo
 samples/
 *.exe
 *.dll
 *.bin
+*.zip
+*.rar
+*.7z
 *.vbs
 *.ps1
 
-yara-env/
+# python
 __pycache__/
 *.pyc
+.venv/
+yara-env/
 
-# OS noise
+# local output
+report*.csv
+
 .DS_Store
 Thumbs.db

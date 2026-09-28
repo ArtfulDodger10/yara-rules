@@ -1,8 +1,8 @@
-# Day 02 — PE Module, Math Module, Dotnet Module
+# The pe, math and dotnet modules
 
 ---
 
-## Part 1 — PE Module (Deep Dive)
+## Part 1: the pe module
 
 ### Imports
 
@@ -18,7 +18,7 @@ pe.imports("kernel32.dll", "VirtualAllocEx")
 pe.imports("wininet.dll")
 
 // Count total imported symbols
-pe.number_of_imported_symbols < 5    // suspicious — maybe resolves APIs dynamically
+pe.number_of_imported_functions < 5  // suspicious, may resolve APIs at runtime
 pe.number_of_imported_symbols > 200  // large import table
 ```
 
@@ -47,8 +47,8 @@ Network:
 ### Sections
 
 ```yara
-pe.number_of_sections > 8    // unusual — most legit PEs have 4–6
-pe.number_of_sections < 3    // suspicious — stripped binary
+pe.number_of_sections > 8    // unusual, most legitimate PEs have 4 to 6
+pe.number_of_sections < 3    // suspicious, stripped binary
 
 // Check for a specific section name
 for any section in pe.sections : (
@@ -71,7 +71,7 @@ for any section in pe.sections : (
 
 ### Entry Point
 
-**This rule checks if the entry point is located inside a non-standard section — a common malware trick.**
+**This rule checks if the entry point is located inside a non-standard section, a common malware trick.**
 
 ```yara
 pe.entry_point    // raw file offset of the entry point
@@ -85,12 +85,12 @@ for any section in pe.sections : (
 
 **Logic breakdown:**
 
-- `raw_data_offset` — where the section's data starts in the physical file
-- `raw_data_size` — how many bytes the section occupies in the file
-- `.text` — the standard section where the entry point lives, so it's suspicious if the EP is elsewhere
-- `pe.entry_point >= section.raw_data_offset` — EP is at or after the start of this section
-- `pe.entry_point < section.raw_data_offset + section.raw_data_size` — EP is before the end of this section (offset + size = end)
-- `section.name != ".text"` — that section is not the standard code section
+- `raw_data_offset`: where the section's data starts in the physical file
+- `raw_data_size`: how many bytes the section occupies in the file
+- `.text`: the standard section where the entry point lives, so it's suspicious if the EP is elsewhere
+- `pe.entry_point >= section.raw_data_offset`: the EP is at or after the start of this section
+- `pe.entry_point < section.raw_data_offset + section.raw_data_size`: the EP is before the end of this section (offset + size = end)
+- `section.name != ".text"`: that section is not the standard code section
 
 Overall: the rule matches if the entry point falls **inside** a section that is **not** named `.text`.
 
@@ -106,12 +106,12 @@ pe.is_dll                         // it's a DLL
 pe.is_exe                         // it's an EXE
 
 pe.overlay.size > 0               // data appended after the last PE section
-pe.overlay.size > 100KB           // large overlay — possibly an embedded payload
+pe.overlay.size > 100KB           // large overlay, possibly an embedded payload
 ```
 
 ---
 
-## Part 2 — Math Module
+## Part 2: the math module
 
 Helps detect packing, encryption, and obfuscation statistically.
 
@@ -119,7 +119,7 @@ Helps detect packing, encryption, and obfuscation statistically.
 
 | Range   | Meaning                              |
 | ------- | ------------------------------------ |
-| < 7.0   | Probably fine — normal code or data  |
+| < 7.0   | Probably fine, normal code or data   |
 | 7.0–7.4 | Worth investigating                  |
 | > 7.4   | Strong packing or encryption signal  |
 | > 7.8   | Almost certainly packed or encrypted |
@@ -159,12 +159,12 @@ import "math"
 
 rule Packed_Executable {
     meta:
-        description = "PE with high-entropy section and minimal imports — likely packed"
+        description = "PE with a high-entropy section and few imports, likely packed"
 
     condition:
         pe.is_pe and
         filesize < 5MB and
-        pe.number_of_imported_symbols < 10 and    // few imports = dynamic API resolution
+        pe.number_of_imported_functions < 10 and  // few imports = dynamic API resolution
         for any section in pe.sections : (
             math.entropy(section.raw_data_offset, section.raw_data_size) > 7.4
         )
@@ -173,7 +173,7 @@ rule Packed_Executable {
 
 ---
 
-## Part 3 — Dotnet Module
+## Part 3: the dotnet module
 
 There is `dotnet.is_dotnet` the same way like `pe.is_pe` :)
 
@@ -199,14 +199,14 @@ version = 5.2.1.7
 **Metadata streams** are like sections but for .NET metadata:
 
 ```
-#~        — compressed metadata tables (classes, methods, fields)
-#Strings  — class names, method names, namespaces
-#Blob     — binary data (signatures, constants)
-#GUID     — unique identifiers
-#US       — user strings (hardcoded strings in code)
+#~        compressed metadata tables (classes, methods, fields)
+#Strings  class names, method names, namespaces
+#Blob     binary data (signatures, constants)
+#GUID     unique identifiers
+#US       user strings (hardcoded strings in code)
 ```
 
-`#Strings` is the most useful for detection — it holds class names, method names, and namespaces that can reveal malware behavior.
+`#Strings` is the most useful for detection. It holds class names, method names, and namespaces that can reveal malware behavior.
 
 ### Streams
 
@@ -224,7 +224,7 @@ dotnet.number_of_streams > 0
 ```yara
 // .NET assembly importing a native DLL
 for any module_ref in dotnet.module_refs : (
-    module_ref == "kernel32.dll"    // .NET calling native Win32 — suspicious
+    module_ref == "kernel32.dll"    // .NET calling native Win32, suspicious
 )
 ```
 
@@ -232,9 +232,9 @@ A pure .NET application calling `kernel32` directly via P/Invoke is not inherent
 
 ---
 
-### Dotnet as a Gate — The Key Pattern
+### Using dotnet as a gate
 
-Using `dotnet.is_dotnet` as the first condition immediately eliminates every non-.NET file — massive false positive reduction for free.
+Using `dotnet.is_dotnet` as the first condition immediately rules out every non-.NET file, which cuts false positives for free.
 
 ```yara
 import "dotnet"
@@ -255,7 +255,7 @@ rule AgentTesla_Gate {
 
 ## The 4 Practice Rules
 
-### Rule 1 — High Entropy Packer
+### Rule 1: high entropy packer
 
 ```yara
 import "pe"
@@ -263,8 +263,7 @@ import "math"
 
 rule High_Entropy_Section {
     meta:
-        description = "PE file containing a high-entropy section — possible
-         packing or encryption"
+        description = "PE file with a high-entropy section, possibly packed or encrypted"
 
     condition:
         pe.is_pe and
@@ -275,15 +274,14 @@ rule High_Entropy_Section {
 }
 ```
 
-### Rule 2 — Process Injection Loader
+### Rule 2: process injection imports
 
 ```yara
 import "pe"
 
 rule Process_Injection_Loader {
     meta:
-        description = "PE importing the classic Win32 process injection API
-         combination"
+        description = "PE importing the classic Win32 process injection API combination"
 
     condition:
         pe.is_pe and
@@ -294,7 +292,7 @@ rule Process_Injection_Loader {
 }
 ```
 
-### Rule 3 — Suspicious .NET with Native Calls and High Entropy
+### Rule 3: .NET with native calls or high entropy
 
 Combines `pe`, `math`, and `dotnet` modules together.
 
@@ -305,8 +303,7 @@ import "math"
 
 rule Suspicious_DotNet_NativeCalls {
     meta:
-        description = ".NET assembly importing native injection APIs or containing
-         a high-entropy section"
+        description = ".NET assembly importing native injection APIs or containing a high-entropy section"
 
     condition:
         dotnet.is_dotnet and
@@ -323,7 +320,7 @@ rule Suspicious_DotNet_NativeCalls {
 }
 ```
 
-### Rule 4 — Overlay-Based Dropper
+### Rule 4: overlay dropper
 
 **What is an overlay?** Any data appended after the last legitimate PE section. Think of it like:
 
@@ -331,7 +328,7 @@ rule Suspicious_DotNet_NativeCalls {
 copy /b program.exe + secret.bin infected.exe
 ```
 
-The appended `secret.bin` becomes the overlay — could be a ransomware payload, a second-stage binary, or any embedded file dropped at runtime.
+The appended `secret.bin` becomes the overlay. It could be a ransomware payload, a second-stage binary, or any embedded file dropped at runtime.
 
 ```yara
 import "pe"
@@ -339,8 +336,7 @@ import "math"
 
 rule Overlay_Dropper {
     meta:
-        description = "PE with large high-entropy overlay — likely embedded
-         payload"
+        description = "PE with a large high-entropy overlay, likely an embedded payload"
 
     condition:
         pe.is_pe and
@@ -351,7 +347,7 @@ rule Overlay_Dropper {
 
 ---
 
-### Final piece...Testing the rules :)
+### Testing the rules
 
 **These are the 3 Rules I will use with light modifications** 
 ##### Rule 1
@@ -378,7 +374,7 @@ import "math"
 
 rule High_Entropy_Packed_PE {
     meta:
-        description = "PE with high-entropy section — likely packed or encrypted"
+        description = "PE with a high-entropy section, likely packed or encrypted"
 
     condition:
         pe.is_pe and
@@ -397,8 +393,7 @@ import "dotnet"
 
 rule Suspicious_DotNet_NativeCalls {
     meta:
-        description = ".NET assembly importing native injection APIs or containing
-         high-entropy section"
+        description = ".NET assembly importing native injection APIs or containing high-entropy section"
 
     condition:
         dotnet.is_dotnet and
@@ -488,6 +483,6 @@ C:Users/nader/Desktop/YARA Rules$ yara check_Dot_Net.yar hello.exe
 check_DotNet hello.exe
 ```
 
-**I will be right back to test that rule once I become able to right a similar `.NET` injector :))**
+**Why the native-call branch never matched:** a .NET assembly calls Win32 APIs through P/Invoke (`[DllImport]`), and P/Invoke targets are recorded in the .NET metadata (the ImplMap table), not in the PE import table. `pe.imports()` only sees the import table, which for .NET is `mscoree.dll` alone, so that condition can never be true for a managed assembly. To detect P/Invoke use, match the API name as a string (it is stored in the #Strings heap), as the AsyncRAT rule in this repo does with `RtlSetProcessIsCritical`.
 
 ---

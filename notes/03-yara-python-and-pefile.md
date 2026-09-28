@@ -1,8 +1,8 @@
-# Day 3 — yara-python, pefile, and the Scanner
+# yara-python, pefile, and a scanner
 
 ---
 
-## Part 1 — yara-python Basics
+## Part 1: yara-python basics
 
 ### Compiling Rules
 
@@ -51,9 +51,12 @@ rule Classic_Process_Injection : injection process_memory mitre_t1055 {
         filesize < 5MB and
         pe.imports("kernel32.dll", "VirtualAllocEx") and
         pe.imports("kernel32.dll", "WriteProcessMemory") and
-        pe.imports("kernel32.dll", "CreateRemoteThread")
+        pe.imports("kernel32.dll", "CreateRemoteThread") and
+        all of them
 }
 ```
+
+The strings are only there so the Python code below has matched strings to print. `all of them` keeps them in the condition, since YARA won't compile a rule with unused strings.
 
 **Python scanner:**
 
@@ -84,9 +87,9 @@ for match in matches:
 
 ---
 
-### String Instances — Offsets
+### String instances and offsets
 
-There is an important feature in string matches called `instances` — it tells you exactly where in the file each string matched.
+There is an important feature in string matches called `instances`. It tells you exactly where in the file each string matched.
 
 **Example:** if `VirtualAllocEx` appears 3 times at different offsets, then `#api == 3` (count), and `string_match.instances` will give you each offset individually.
 
@@ -151,26 +154,26 @@ Offset: 59703
 Value : b'CreateRemoteThread'
 ```
 
-`CreateRemoteThread` appeared 5 times across the binary — at different offsets. The import table, debug info, and string table all reference it separately.
+`CreateRemoteThread` appeared 5 times across the binary, at different offsets. The import table, debug info, and string table all reference it separately.
 
 ---
 
 ### Timeout and Error Handling
 
-A match can fail for several reasons — huge file, corrupted binary, or an internal YARA crash. Always add a timeout and wrap in a try/except so the scanner doesn't crash mid-run.
+A match can fail for several reasons: a huge file, corrupted binary, or an internal YARA crash. Always add a timeout and wrap in a try/except so the scanner doesn't crash mid-run.
 
 ```python
 try:
     matches = rules.match("samples/suspicious.exe", timeout=30)
 except yara.TimeoutError:
-    print("[!] Scan timed out — skipping")
+    print("[!] Scan timed out, skipping")
 except yara.Error as e:
     print("[!] YARA error:", e)
 ```
 
 ---
 
-## Part 2 — pefile Basics
+## Part 2: pefile basics
 
 ### Dealing with a File
 
@@ -285,18 +288,18 @@ Section: UPX1       | Entropy: 7.7465 | Size: 10752
 Section: UPX2       | Entropy: 3.6165 | Size: 1024
 ```
 
-Unpacked binary — `.text` at 5.73, everything else low and normal. Packed binary — `UPX1` at 7.74, everything compressed into essentially two sections. The section names alone (`UPX0`, `UPX1`) already give it away before you even look at entropy.
+Unpacked binary: `.text` at 5.73, everything else low and normal. Packed binary: `UPX1` at 7.74, everything compressed into essentially two sections. The section names alone (`UPX0`, `UPX1`) already give it away before you even look at entropy.
 
 ---
 
-## Part 3 — The Scanner
+## Part 3: the scanner
 
-Scans a directory of samples against a directory of rules, then outputs a structured CSV report. This will be expanded as the project progresses — every rule written from Day 4 onward gets tested through this.
+Scans a directory of samples against a directory of rules, then outputs a structured CSV report. This is the first version. The maintained one is [tools/yara_scan.py](../tools/yara_scan.py): it walks rule folders recursively, counts matched files and hits per rule separately, and runs the false-positive scans in the main README.
 
 ```python
 #!/usr/bin/env python3
 """
-YARA Arsenal Scanner
+YARA scanner, first version
 Author: Artful Dodger
 Scans a samples directory against all rules and outputs a CSV report.
 
@@ -420,7 +423,7 @@ def scan_samples(samples_dir, rules, output_csv):
         try:
             matches = rules.match(str(sample), timeout=30)
         except yara.TimeoutError:
-            print(f"[!] Timeout — skipping: {sample.name}")
+            print(f"[!] Timeout, skipping: {sample.name}")
             matches = []
         except Exception as e:
             print(f"[!] Error scanning {sample.name}: {e}")
@@ -475,7 +478,7 @@ def scan_samples(samples_dir, rules, output_csv):
     matched = sum(1 for r in rows if r["Matched_Rule"] != "NO_MATCH")
     total   = len(sample_files)
 
-    print(f"[+] Scan complete — {matched}/{total} sample(s) matched.")
+    print(f"[+] Scan complete: {matched}/{total} sample(s) matched.")
     print(f"[+] Report saved to: {output_csv}")
 
 
@@ -509,8 +512,8 @@ if __name__ == "__main__":
 (yara-env) nader@DESKTOP-8NQ91D8:.../Actual YARA Project$ python3 yara_scanner.py Samples/ Rules/ report.csv
 [+] Loaded 4 rule file(s) from: Rules/
 [+] Scanning 2 sample(s)...
-[+] Scan complete — 4/2 sample(s) matched.
+[+] Scan complete: 4/2 sample(s) matched.
 [+] Report saved to: report.csv
 ```
 
-`4/2` means 2 samples each matched 2 rules — so 4 total match events across 2 files. The scanner counts match events, not unique files. Working as expected.
+`4/2` means 2 samples each matched 2 rules, so 4 match events across 2 files. The scanner counted match events, not files, which makes the line misleading. The version in `tools/` reports files matched and hits per rule separately.

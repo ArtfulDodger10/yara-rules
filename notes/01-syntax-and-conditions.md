@@ -1,4 +1,4 @@
-# Day 01 — YARA Syntax & Foundations
+# YARA syntax and conditions
 
 ---
 
@@ -36,11 +36,11 @@ rule Malware {
         $b = "cmd.exe"
 
     condition:
-        $b
+        $a or $b
 }
 ```
 
-If the string `"cmd.exe"` exists in the file → match.
+If either string is in the file, it matches. Every string has to appear in the condition: YARA refuses to compile a rule with a string that is never used.
 
 ---
 
@@ -48,9 +48,9 @@ If the string `"cmd.exe"` exists in the file → match.
 
 There are three types of strings in YARA:
 
-1. **Hex** — `$var = { 90 90 90 }` (NOP instructions)
-2. **Text** — `$a = "cmd.exe"`
-3. **Regular Expression** — `$var = /cmd\.exe/`
+1. **Hex**: `$var = { 90 90 90 }` (NOP instructions)
+2. **Text**: `$a = "cmd.exe"`
+3. **Regular expression**: `$var = /cmd\.exe/`
 
 ---
 
@@ -60,18 +60,18 @@ There are three types of strings in YARA:
 { E2 34 ?? C8 }       // ?? = any byte at position 3
                       // matches: E2 34 66 C8, E2 34 90 C8, etc.
 
-{ A? }                // nibble wildcard — any byte from A0 to AF
+{ A? }                // nibble wildcard, any byte from A0 to AF
 
 { F4 23 ~00 62 }      // ~00 = any byte EXCEPT 00
 
 { F4 23 [4-6] 62 B4 } // [4-6] = 4 to 6 bytes at that position
                       // matches: F4 23 11 22 33 44 62 B4, etc.
 
-{ FE 39 [6] 89 }      // exactly 6 bytes — same as [6-6] or ?? ?? ?? ?? ?? ??
+{ FE 39 [6] 89 }      // exactly 6 bytes, same as [6-6] or ?? ?? ?? ?? ?? ??
 
 { FE 39 [10-] 89 }    // at least 10 bytes, no limits
 
-{ E2 34 (62 B4 | 90) C8 }  // alternatives — matches E2 34 90 C8
+{ E2 34 (62 B4 | 90) C8 }  // alternatives: matches E2 34 90 C8
                             //                or     E2 34 62 B4 C8
 
                             
@@ -83,9 +83,9 @@ There are three types of strings in YARA:
 
 | Modifier   | What it does                                                                                                                                                   |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `nocase`   | Case-insensitive — matches `Powershell`, `POWERSHELL`, `powershell`                                                                                            |
+| `nocase`   | Case-insensitive, matches `Powershell`, `POWERSHELL`, `powershell`                                                                                            |
 | `ascii`    | ASCII encoding (default, no need to write unless combining with `wide`)                                                                                        |
-| `wide`     | UTF-16LE encoding — null byte between each character. Most Windows API strings are wide. **Always use `wide ascii` together unless you have a reason not to.** |
+| `wide`     | UTF-16LE encoding, a null byte after each character. Most Windows API strings are wide. **Always use `wide ascii` together unless you have a reason not to.** |
 | `xor`      | Tries all 256 single-byte XOR keys automatically. Catches obfuscated strings.                                                                                  |
 | `fullword` | Matches the string only when surrounded by non-alphanumeric characters. `"cmd"` fullword matches `cmd.exe` but not `cmdline`.                                  |
 | `base64`   | Searches for base64-encoded versions of the string                                                                                                             |
@@ -120,11 +120,11 @@ condition:
 ## Counting & Offsets
 
 ```yara
-// String count — how many times did $a appear?
+// String count: how many times did $a appear?
 #a > 5      // match only if $a appears more than 5 times
 #a == 1     // match only if $a appears exactly once
 
-// String offset — where did $a appear?
+// String offset: where did $a appear?
 @a          // offset of the first occurrence
 @a[1]       // same as above (1-indexed)
 @a[2]       // offset of the second occurrence
@@ -132,9 +132,9 @@ condition:
 
 > **Quick reference:**
 > 
-> - `$` → the string itself
-> - `#` → count of occurrences
-> - `@` → offset of occurrence
+> - `$` is the string itself
+> - `#` is the number of occurrences
+> - `@` is the offset of an occurrence
 
 ---
 
@@ -151,7 +151,7 @@ all of ($mutex*)           // all mutex strings must be present
 
 ---
 
-## `for..of` — Conditions on String Occurrences
+## `for..of`: conditions on string occurrences
 
 **Every occurrence of `$config_marker` must be within the first 1KB:**
 
@@ -160,11 +160,10 @@ for all i in (1..#config_marker) : ( @config_marker[i] < 1024 )
 ```
 
 **Explaining the syntax:** 
-	→ **#config_marker** may be located at offsets 100, 500, 900, so It appeared 3 times.
-	so It's like `for i in [1, 2, 3]`.
-    → @config_marker[i] < 1024 means offset of the `i` occurrence is within the range 1024
-    → @config_marker[1] = 100, @config_marker[2] = 500, and so on..
-    → all means that every iteration must be true, so the rule passes, otherwise It doesn't.
+- `#config_marker` is the count. If the string sits at offsets 100, 500 and 900, it is 3, so the loop is like `for i in [1, 2, 3]`.
+- `@config_marker[i] < 1024` means the i-th occurrence starts before offset 1024.
+- `@config_marker[1]` is 100, `@config_marker[2]` is 500, and so on.
+- `all` means every occurrence has to satisfy the check, otherwise the condition is false.
 
 
 **Any occurrence of `$shellcode` must be at the entry point:**
@@ -172,7 +171,7 @@ for all i in (1..#config_marker) : ( @config_marker[i] < 1024 )
 ```yara
 for any of ($shellcode*) : ( $ at pe.entry_point )
 ```
-**Same rule** → any of ($browser_path*)    // any string whose identifier starts with $browser_path
+**Same rule:** any of ($browser_path*)    // any string whose identifier starts with $browser_path
 
 ---
 
@@ -211,7 +210,7 @@ Almost every real rule should bound filesize. Cuts false positives significantly
 
 ---
 
-## Real Example — UPX Packer Detection
+## Real example: UPX detection
 
 ```yara
 strings:
@@ -221,13 +220,13 @@ condition:
     $upx_stub at pe.entry_point
 ```
 
-Matches the UPX stub only if it sits exactly at the PE entry point — not just anywhere in the file.
+Matches the UPX stub only if it sits exactly at the PE entry point, not just anywhere in the file.
 
 ---
 
 ## Project Rule Template
 
-Every rule in the arsenal follows this structure:
+Every rule in this repo follows this structure:
 
 ```yara
 // 1. Gate on file type and size first
@@ -238,7 +237,7 @@ $reg_persist = "CurrentVersion\\Run" wide ascii
 $smtp_verb   = "EHLO" ascii fullword
 $mutex       = "SomeFamilyMutex_" wide ascii nocase
 
-// 3. Require N of M — never all-or-nothing
+// 3. Require N of M, never all or nothing
 2 of ($reg_persist, $smtp_verb, $mutex)
 
 // 4. Layer PE import conditions
@@ -260,7 +259,7 @@ import "math"
 
 rule Credential_Stealer_Generic {
     meta:
-        description = "Generic credential stealer — browser paths + crypto APIs"
+        description = "Generic credential stealer: browser paths plus crypto APIs"
         author      = "Nader"
         date        = "2025-06-13"
         confidence  = "Medium"
